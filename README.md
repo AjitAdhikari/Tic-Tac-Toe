@@ -16,7 +16,7 @@ A simple Tic-Tac-Toe game implemented using HTML, CSS, and JavaScript. This proj
 
 ## Demo
 
-![Tic-Tac-Toe Screenshots](./1.jpg)
+![Tic-Tac-Toe Screenshots](./download.jpg)
 
 ---
 
