@@ -1,12 +1,14 @@
 const statusDisplay = document.querySelector('.game--status');
 
 let gameActive = true;
-let currentPlayer = "X";
+const humanPlayer = "X";
+const aiPlayer = "O";
+let currentPlayer = humanPlayer;
 let gameState = ["", "", "", "", "", "", "", "", ""];
 
-const winningMessage = () => `Player ${currentPlayer} has won!`;
-const drawMessage = () => `Game ended in a draw!`;
-const currentPlayerTurn = () => `It's ${currentPlayer}'s turn`;
+const winningMessage = () => (currentPlayer === humanPlayer ? 'You win' : 'Computer win');
+const drawMessage = () => 'Game tie';
+const currentPlayerTurn = () => (currentPlayer === humanPlayer ? 'Your turn' : '');
 
 statusDisplay.innerHTML = currentPlayerTurn();
 
@@ -66,16 +68,22 @@ function handleCellClick(clickedCellEvent) {
     const clickedCell = clickedCellEvent.target;
     const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
 
-    if(gameState[clickedCellIndex] !== "" || !gameActive)
+    if(gameState[clickedCellIndex] !== "" || !gameActive || currentPlayer !== humanPlayer)
         return;
 
     handleCellPlayed(clickedCell, clickedCellIndex);
     handleResultValidation();
+
+    if (gameActive && currentPlayer === aiPlayer) {
+        setTimeout(() => {
+            computerMove();
+        }, 300);
+    }
 }
 
 function handleRestartGame() {
     gameActive = true;
-    currentPlayer = "X";
+    currentPlayer = humanPlayer;
     gameState = ["", "", "", "", "", "", "", "", ""];
     statusDisplay.innerHTML = currentPlayerTurn();
     document.querySelectorAll('.cell').forEach(cell => cell.innerHTML = "");
@@ -84,3 +92,74 @@ function handleRestartGame() {
 
 document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', handleCellClick));
 document.querySelector('.game--restart').addEventListener('click', handleRestartGame);
+
+function checkWinner(board) {
+    for (let i = 0; i < winningConditions.length; i++) {
+        const [a, b, c] = winningConditions[i];
+        if (board[a] && board[a] === board[b] && board[b] === board[c]) {
+            return board[a];
+        }
+    }
+    return null;
+}
+
+function isBoardFull(board) {
+    return !board.includes("");
+}
+
+function minimax(board, depth, isMaximizing) {
+    const winner = checkWinner(board);
+    if (winner === aiPlayer) return 10 - depth;
+    if (winner === humanPlayer) return depth - 10;
+    if (isBoardFull(board)) return 0;
+
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === "") {
+                board[i] = aiPlayer;
+                const score = minimax(board, depth + 1, false);
+                board[i] = "";
+                if (score > bestScore) bestScore = score;
+            }
+        }
+        return bestScore;
+    } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === "") {
+                board[i] = humanPlayer;
+                const score = minimax(board, depth + 1, true);
+                board[i] = "";
+                if (score < bestScore) bestScore = score;
+            }
+        }
+        return bestScore;
+    }
+}
+
+function findBestMove(board) {
+    let bestScore = -Infinity;
+    let move = -1;
+    for (let i = 0; i < board.length; i++) {
+        if (board[i] === "") {
+            board[i] = aiPlayer;
+            const score = minimax(board, 0, false);
+            board[i] = "";
+            if (score > bestScore) {
+                bestScore = score;
+                move = i;
+            }
+        }
+    }
+    return move;
+}
+
+function computerMove() {
+    if (!gameActive || currentPlayer !== aiPlayer) return;
+    const bestIndex = findBestMove(gameState.slice());
+    if (bestIndex === -1) return;
+    const cell = document.querySelector(`[data-cell-index="${bestIndex}"]`);
+    handleCellPlayed(cell, bestIndex);
+    handleResultValidation();
+}
